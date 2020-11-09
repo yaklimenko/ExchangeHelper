@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">HabitsExchangeHelper</string>
+    <string name="rur" translatable="false">RUR</string>
+    <string name="usd" translatable="false">USD</string>
+    <string name="eur" translatable="false">EUR</string>
+    <string name="gbp" translatable="false">GBP</string>
+    <string name="chf" translatable="false">CHF</string>
+    <string name="cny" translatable="false">CNY</string>
+    <string name="et_amount_example">2000</string>
+    <string name="tv_rate_example">rate: 1.2334456787</string>
+</resources>
