@@ -19,7 +19,8 @@ class AppModule(val app: Application) {
         app.getSharedPreferences("exchange-prefs", Context.MODE_PRIVATE)
 
     @Provides
-    fun providesPrefsService(context: Context): PrefsService = PrefsService(context)
+    fun providesPrefsService(sharedPreferences: SharedPreferences): PrefsService =
+        PrefsService(sharedPreferences)
 }
 
 @Module
@@ -28,9 +29,14 @@ class NetworkModule {
     fun providesRatesApiService(): RatesApiService = RatesApiService()
 }
 
-@Module(includes = arrayOf(NetworkModule::class))
+@Module(includes = arrayOf(NetworkModule::class, AppModule::class))
 class RatesModule {
     @Provides
-    fun providesRatesRepository(ratesApiService: RatesApiService): RatesRepository =
-        RatesRepository(ratesApiService)
+    fun providesRatesRepository(
+        ratesApiService: RatesApiService,
+        prefsService: PrefsService
+    ): RatesRepository =
+        RatesRepository(ratesApiService, prefsService)
+
+
 }
