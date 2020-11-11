@@ -32,6 +32,11 @@ class RatesRepository @Inject constructor(
             }
     }
 
+    fun getRate(base: Currency, target: Currency): Single<BigDecimal> {
+        return getRates(base)
+            .map { it[target] }
+    }
+
     private fun getSavedRates(base: Currency): Single<Map<Currency, BigDecimal>> {
         return Single.create { emitter ->
             if (prefsService.hasRates(base)) {
