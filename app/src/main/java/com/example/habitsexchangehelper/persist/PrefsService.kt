@@ -19,11 +19,11 @@ class PrefsService @Inject constructor(private val sharedPreferences: SharedPref
 
 
     fun hasRates(base: Currency): Boolean =
-        sharedPreferences.contains(base.name)
+        sharedPreferences.contains(base.name + "Rate")
 
     fun getRates(base: Currency): Single<HashMap<Currency, BigDecimal>> {
         return Single.create(SingleOnSubscribe { emitter ->
-            val json = sharedPreferences.getString(base.name, "")
+            val json = sharedPreferences.getString(base.name  + "Rate", "")
             if ("".equals(json)) {
                 emitter.onError(NullPointerException("no rates for ${base.name}"))
             } else {
@@ -36,26 +36,26 @@ class PrefsService @Inject constructor(private val sharedPreferences: SharedPref
     fun saveRates(base: Currency, rates: Map<Currency, BigDecimal>): Completable {
         return Single.just(Gson().toJson(rates))
             .flatMapCompletable {
-                saveString(base.name, it)
+                saveString(base.name + "Rate", it)
             }
     }
 
     fun saveInputBaseAmount(amount: BigDecimal): Completable {
         return Single.just(amount.toEngineeringString())
             .flatMapCompletable {
-                saveString(INPUT_BASE_AMOUNT, it)
+                saveString(BASE_AMOUNT, it)
             }
     }
 
-    fun hasInputBaseAmount(): Boolean {
-        return sharedPreferences.contains(INPUT_BASE_AMOUNT)
+    fun hasBaseAmount(): Boolean {
+        return sharedPreferences.contains(BASE_AMOUNT)
     }
 
     fun getInputBaseAmount(): Single<BigDecimal> {
         return Single.create(SingleOnSubscribe { emitter ->
-            val str = sharedPreferences.getString(INPUT_BASE_AMOUNT, "")
+            val str = sharedPreferences.getString(BASE_AMOUNT, "")
             if ("".equals(str)) {
-                emitter.onError(NullPointerException("no INPUT_BASE_AMOUNT"))
+                emitter.onError(NullPointerException("no INPUT_BASE_AMOUNT saved"))
             } else {
                 emitter.onSuccess(BigDecimal(str))
             }
@@ -70,7 +70,55 @@ class PrefsService @Inject constructor(private val sharedPreferences: SharedPref
         })
     }
 
+    fun saveBaseCurrency(base: Currency): Completable {
+        return Completable.fromAction( Action {
+            sharedPreferences.edit()
+                .putString(BASE_CURRENCY, base.name)
+                .apply()
+        })
+    }
+
+    fun hasBaseCurrency() : Boolean {
+        return sharedPreferences.contains(BASE_CURRENCY)
+    }
+
+    fun hasTargetCurrency() : Boolean {
+        return sharedPreferences.contains(TARGET_CURRENCY)
+    }
+
+    fun getBaseCurrency() : Single<Currency> {
+        return Single.create(SingleOnSubscribe { emitter ->
+            val str = sharedPreferences.getString(BASE_CURRENCY, "")
+            if ("".equals(str)) {
+                emitter.onError(NullPointerException("no BASE_CURRENCY saved"))
+            } else {
+                emitter.onSuccess(Currency.valueOf(str!!))
+            }
+        })
+    }
+
+    fun getTargetCurrency() : Single<Currency> {
+        return Single.create(SingleOnSubscribe { emitter ->
+            val str = sharedPreferences.getString(TARGET_CURRENCY, "")
+            if ("".equals(str)) {
+                emitter.onError(NullPointerException("no TARGET_CURRENCY saved"))
+            } else {
+                emitter.onSuccess(Currency.valueOf(str!!))
+            }
+        })
+    }
+
+    fun saveTargetCurrency(target: Currency): Completable {
+        return Completable.fromAction( Action {
+            sharedPreferences.edit()
+                .putString(TARGET_CURRENCY, target.name)
+                .apply()
+        })
+    }
+
     companion object {
-        const val INPUT_BASE_AMOUNT = "inputBaseAmount"
+        const val BASE_AMOUNT = "inputBaseAmount"
+        const val BASE_CURRENCY = "baseCurrency"
+        const val TARGET_CURRENCY = "targetCurrency"
     }
 }

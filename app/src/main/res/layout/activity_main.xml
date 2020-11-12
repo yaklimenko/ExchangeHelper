@@ -17,7 +17,7 @@
         tools:context=".view.MainActivity">
 
         <LinearLayout
-            android:id="@+id/buttonBar"
+            android:id="@+id/buttonBarBase"
             style="?android:attr/buttonBarStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -27,53 +27,6 @@
             app:layout_constraintTop_toTopOf="parent"
             tools:showIn="@layout/activity_main">
 
-            <Button
-                android:id="@+id/btnCurRUR"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/rur" />
-
-            <Button
-                android:id="@+id/btnCurUSD"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/usd" />
-
-            <Button
-                android:id="@+id/btnCurEUR"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/eur" />
-
-            <Button
-                android:id="@+id/btnCurGBP"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/gbp" />
-
-            <Button
-                android:id="@+id/btnCurCHF"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/chf" />
-
-            <Button
-                android:id="@+id/btnCurCNY"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/cny" />
         </LinearLayout>
 
         <EditText
@@ -81,113 +34,43 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:inputType="numberDecimal"
-            android:text="@{viewmodel.baseField}"
+            android:text="@={viewmodel.baseAmountFieldDown}"
             android:textSize="@dimen/amountTextSize"
-
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/buttonBar"
 
-            />
+            app:layout_constraintTop_toBottomOf="@id/buttonBarBase" />
 
-        <TextView
-            android:id="@+id/rateDescriptionText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/tv_rate_example"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/amountEditText"
 
-            />
 
-        <androidx.appcompat.widget.AppCompatImageButton
-            android:id="@+id/btnSwap"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_swap"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/rateDescriptionText"
-            />
 
         <LinearLayout
-            android:id="@+id/buttonBar2"
+            android:id="@+id/buttonBarTarget"
             style="?android:attr/buttonBarStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
+            android:layout_marginTop="40dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/btnSwap"
+            app:layout_constraintTop_toBottomOf="@id/amountEditText"
             tools:showIn="@layout/activity_main">
 
-            <Button
-                android:id="@+id/btnCurRUR2"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/rur" />
 
-            <Button
-                android:id="@+id/btnCurUSD2"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/usd" />
-
-            <Button
-                android:id="@+id/btnCurEUR2"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/eur" />
-
-            <Button
-                android:id="@+id/btnCurGBP2"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/gbp" />
-
-            <Button
-                android:id="@+id/btnCurCHF2"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/chf" />
-
-            <Button
-                android:id="@+id/btnCurCNY2"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/cny" />
         </LinearLayout>
 
-        <EditText
+        <TextView
             android:id="@+id/amountEditText2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="numberDecimal"
-            android:text="@{viewmodel.targetField}"
+            android:text="@{viewmodel.targetAmountField}"
             android:textSize="@dimen/amountTextSize"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/buttonBar2" />
+            app:layout_constraintTop_toBottomOf="@id/buttonBarTarget" />
 
-        <TextView
-            android:id="@+id/rateDescriptionText2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/tv_rate_example"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/amountEditText2" />
+
 
 
     </androidx.constraintlayout.widget.ConstraintLayout>

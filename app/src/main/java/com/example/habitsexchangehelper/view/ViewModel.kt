@@ -7,124 +7,219 @@ import androidx.lifecycle.ViewModel
 import com.example.habitsexchangehelper.di.ActivityComponent
 import com.example.habitsexchangehelper.entity.Currency
 import com.example.habitsexchangehelper.repository.RatesRepository
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.schedulers.Schedulers
+import io.reactivex.rxjava3.subjects.PublishSubject
+import retrofit2.HttpException
 import java.lang.NumberFormatException
 import java.math.BigDecimal
+import java.net.UnknownHostException
+import java.util.concurrent.TimeUnit
 
 import javax.inject.Inject
+import kotlin.math.log
 
 class ExchangeViewModel : ViewModel() {
 
-    @Inject lateinit var ratesRepository: RatesRepository
+    @Inject
+    lateinit var ratesRepository: RatesRepository
 
 
-    private var baseAmount: BigDecimal? = null
+    private var baseAmount: BigDecimal = BigDecimal.ZERO
     private var targetAmount: BigDecimal? = null
     private var rate: BigDecimal? = null
-    private var baseCurrency: Currency? = null
-    private var targetCurrency: Currency? = null
-
-    val baseField: MutableLiveData<String> = MutableLiveData()
-    val targetField: MutableLiveData<String> = MutableLiveData()
 
 
+    val baseAmountFieldDown: MutableLiveData<String> = MutableLiveData()
+    val baseAmountFieldUp: MutableLiveData<String> = MutableLiveData()
+
+    val targetAmountField: MutableLiveData<String> = MutableLiveData()
+    val baseCurrencySelected: MutableLiveData<Currency> = MutableLiveData()
+
+    val targetCurrencySelected: MutableLiveData<Currency> = MutableLiveData()
+    val errorMsg: MutableLiveData<String> = MutableLiveData()
 
     private val disposables: CompositeDisposable = CompositeDisposable()
 
     // This observer will invoke onBaseFieldChanged() when the user updates the base field
-    private val emailObserver = Observer<String> { onBaseFieldChanged(it) }
+    private val amountObserver = Observer<String> { onBaseFieldChanged(it) }
+    private val observableAmount: PublishSubject<String> = PublishSubject.create()
 
     init {
-        baseField.observeForever(emailObserver)
+        baseAmountFieldDown.observeForever(amountObserver)
     }
 
-    private fun onBaseFieldChanged(baseFieldInput: String?) {
-        if (baseFieldInput == null) {
-            targetField.value = ""
-            return;
-        }
+    fun onActivityStarted() {
+        recoverCurrencies()
+        recoverSavedBaseAmount()
+        refreshCurrencies()
+        subscribeAmountObservable()
+    }
+
+    private fun subscribeAmountObservable() {
+        observableAmount
+            .debounce(500, TimeUnit.MILLISECONDS)
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({
+                handleAmount(it)
+            }, { e -> onError(e) })
+
+    }
+
+    private fun handleAmount(it: String?) {
         var amount: BigDecimal?
+        var tmp: String
+        if (it == null || it.isEmpty()) {
+            tmp = "0"
+        } else {
+            tmp = it;
+        }
         try {
-            amount = BigDecimal(baseFieldInput)
+            amount = BigDecimal(tmp)
         } catch (e: NumberFormatException) {
             onError(e)
             amount = null;
-            return
-        }
-        if (amount.equals(baseAmount)) {
-            return;
         }
         refreshAmount(amount)
     }
 
-    fun refreshAmount (base: BigDecimal? = baseAmount) {
-        if (base == null) {
-            return;
+    private fun onBaseFieldChanged(baseFieldInput: String?) {
+        observableAmount.onNext(baseFieldInput)
+    }
+
+    fun refreshAmount(base: BigDecimal?) {
+        if (base != baseAmount) {
+            baseAmount = base ?: BigDecimal.ZERO
+            refreshAmount()
         }
-        baseAmount = base;
+    }
+
+    fun refreshAmount() {
         if (rate == null) {
             return
         }
-        targetAmount = baseAmount?.multiply(rate)
-        targetField.value = targetAmount.toString()
+        targetAmount = baseAmount.multiply(rate)
+        targetAmountField.value = targetAmount.toString()
+        Log.d(TAG, "refreshAmount: $targetAmount")
     }
 
 
 
-    fun onViewStarted(component: ActivityComponent) {
+    fun inject(component: ActivityComponent) =
         component.inject(this)
-    }
 
-
-    fun refreshCurrencies() {
-        if (baseCurrency == null || targetCurrency == null) {
+    private fun refreshCurrencies() {
+        Log.d(TAG, "refreshCurrencies: ")
+        if (baseCurrencySelected.value == null || targetCurrencySelected.value == null) {
             return
         }
-        if (baseCurrency!!.equals(targetCurrency)) {
+        if (baseCurrencySelected.value!!.equals(targetCurrencySelected.value)) {
             rate = BigDecimal.ONE
             refreshAmount()
             return
         }
         disposables.add(
-            ratesRepository.getRate(baseCurrency!!, targetCurrency!!)
+            ratesRepository.getRate(baseCurrencySelected.value!!, targetCurrencySelected.value!!)
+                .onErrorResumeNext {
+                    if (it is HttpException || it is UnknownHostException) {
+                        Log.e(TAG, "refreshCurrencies: ", it)
+                        return@onErrorResumeNext ratesRepository.getSavedRate(
+                            baseCurrencySelected.value!!,
+                            targetCurrencySelected.value!!
+                        )
+                    } else {
+                        Single.error(it)
+                    }
+                }
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                     {
                         rate = it
                         refreshAmount()
+                        Log.d(TAG, "refreshCurrencies: ")
                     }, { e -> onError(e) }
                 )
         )
     }
 
     fun onBaseCurrencySet(bc: Currency) {
-        if (bc == baseCurrency) {
+        if (bc == baseCurrencySelected.value) {
             return
         }
-        baseCurrency = bc
+        baseCurrencySelected.value = bc
         refreshCurrencies()
     }
 
     fun onTargetCurrencySet(tc: Currency) {
-        if (tc == targetCurrency) {
+        if (tc == targetCurrencySelected.value) {
             return
         }
-        targetCurrency = tc
+        targetCurrencySelected.value = tc
         refreshCurrencies()
     }
 
     fun recoverSavedBaseAmount() {
         disposables.add(
-            ratesRepository.getSavedInputBaseAmount()
-            .subscribe ( { it -> refreshAmount(it)}, {e -> onError(e)} )
+            ratesRepository.getBaseAmount()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe({
+                    baseAmountFieldUp.value = it.toEngineeringString()
+                    refreshAmount(it)
+                }, { e -> onError(e) })
         )
     }
 
-    fun onError (t: Throwable) {
-        Log.e(TAG, "onError: ", t)
-        //todo
+    fun recoverCurrencies() {
+        disposables.add(
+            ratesRepository.getSavedBaseCurrency()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .map {
+                    baseCurrencySelected.value = it
+                    return@map Single.just(true)
+                }
+                .observeOn(Schedulers.io())
+                .flatMap { ratesRepository.getSavedTargetCurrency() }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe({
+                    targetCurrencySelected.value = it
+                    refreshCurrencies()
+                }, { e -> onError(e) })
+        )
     }
 
-    companion object{
+    fun onError(t: Throwable) {
+        Log.e(TAG, "onError: ", t)
+        if (t is HttpException) {
+            errorMsg.value = "" + t.code() + t.response().toString() + t.message()
+            return
+        }
+        errorMsg.value = t.message
+    }
+
+    fun saveState() {
+        Log.d(TAG, "saveState: amount:" + baseAmount.toString())
+        ratesRepository.saveBaseAmount(baseAmount)
+            .andThen(
+                ratesRepository.saveCurrencies(
+                    baseCurrencySelected.value!!,
+                    targetCurrencySelected.value!!
+                )
+            )
+            .subscribe()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        disposables.clear()
+        baseAmountFieldDown.removeObserver(amountObserver)
+    }
+
+
+    companion object {
         private val TAG = ExchangeViewModel::class.java.simpleName
     }
 }

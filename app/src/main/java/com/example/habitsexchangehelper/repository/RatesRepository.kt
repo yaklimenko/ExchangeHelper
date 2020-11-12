@@ -4,6 +4,7 @@ import com.example.habitsexchangehelper.entity.Currency
 import com.example.habitsexchangehelper.entity.Rates
 import com.example.habitsexchangehelper.net.RatesApiService
 import com.example.habitsexchangehelper.persist.PrefsService
+import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
 import java.math.BigDecimal
 import java.util.*
@@ -19,26 +20,27 @@ class RatesRepository @Inject constructor(
     private val cache: EnumMap<Currency, EnumMap<Currency, BigDecimal>> =
         EnumMap<Currency, EnumMap<Currency, BigDecimal>>(Currency::class.java)
 
-    fun getRates(base: Currency): Single<Map<Currency, BigDecimal>> {
-        if (cache.containsKey(base)) {
-            return Single.just(cache[base])
-        }
-        return ratesApiService.getRates(base.name)
-            .map {
-                val rightMap = transformRawRates(it)
-                cache[base] = rightMap
-                prefsService.saveRates(base, rightMap)
-                return@map rightMap
+    fun getRates(base: Currency): Single<Map<Currency, BigDecimal>> =
+        if (cache.containsKey(base)) Single.just(cache[base])
+        else ratesApiService.getRates(base.name)
+            .map { transformRawRates(it) }
+            .flatMap {
+                prefsService.saveRates(base, it)
+                    .andThen(Single.just(it))
             }
-    }
 
-    fun getRate(base: Currency, target: Currency): Single<BigDecimal> {
-        return getRates(base)
-            .map { it[target] }
-    }
 
-    private fun getSavedRates(base: Currency): Single<Map<Currency, BigDecimal>> {
-        return Single.create { emitter ->
+    fun getRate(base: Currency, target: Currency): Single<BigDecimal> =
+        getRates(base).map { it[target] }
+
+    fun getSavedRate(base: Currency, target: Currency): Single<BigDecimal> =
+        getSavedRates(base).map { it[target] }
+
+    fun saveRates(base: Currency, rates: Map<Currency, BigDecimal>) =
+        prefsService.saveRates(base, rates)
+
+    private fun getSavedRates(base: Currency): Single<Map<Currency, BigDecimal>> =
+        Single.create { emitter ->
             if (prefsService.hasRates(base)) {
                 prefsService.getRates(base).subscribe { res ->
                     val rates: EnumMap<Currency, BigDecimal> =
@@ -51,12 +53,12 @@ class RatesRepository @Inject constructor(
                 emitter.onError(NullPointerException("no saved rates"))
             }
         }
-    }
+
 
     private fun transformRawRates(it: Rates): EnumMap<Currency, BigDecimal> {
         val res = EnumMap<Currency, BigDecimal>(Currency::class.java)
         it.rates.forEach { rateEntry ->
-            if (enumValues<Currency>().any { it.name == rateEntry.key}) {
+            if (enumValues<Currency>().any { it.name == rateEntry.key }) {
                 val cur = Currency.valueOf(rateEntry.key)
                 res[cur] = rateEntry.value
             }
@@ -64,13 +66,23 @@ class RatesRepository @Inject constructor(
         return res
     }
 
-    fun getSavedInputBaseAmount() : Single<BigDecimal> =
-        if (prefsService.hasInputBaseAmount()) prefsService.getInputBaseAmount() else Single.just(BigDecimal.ZERO)
+    fun getBaseAmount(): Single<BigDecimal> =
+        if (prefsService.hasBaseAmount()) prefsService.getInputBaseAmount()
+        else Single.just(BigDecimal.ZERO)
 
+    fun saveBaseAmount(amount: BigDecimal) = prefsService.saveInputBaseAmount(amount)
 
+    fun getSavedBaseCurrency(): Single<Currency> =
+        if (prefsService.hasBaseCurrency()) prefsService.getBaseCurrency()
+        else Single.just(Currency.RUB)
 
-    fun saveInputBaseAmount(amount: BigDecimal) {
-        prefsService.saveInputBaseAmount(amount)
+    fun getSavedTargetCurrency(): Single<Currency> =
+        if (prefsService.hasTargetCurrency()) prefsService.getTargetCurrency()
+        else Single.just(Currency.USD)
+
+    fun saveCurrencies(base: Currency, target: Currency): Completable {
+        return prefsService.saveBaseCurrency(base)
+            .andThen(prefsService.saveTargetCurrency(target))
     }
 
 }
