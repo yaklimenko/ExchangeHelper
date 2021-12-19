@@ -14,9 +14,9 @@ import javax.inject.Singleton
 
 
 @Singleton
-class PrefsService @Inject constructor(private val sharedPreferences: SharedPreferences) {
-
-
+class PrefsService @Inject constructor(
+    private val sharedPreferences: SharedPreferences
+) {
 
     fun hasRates(base: Currency): Boolean =
         sharedPreferences.contains(base.name + "Rate")
@@ -24,7 +24,7 @@ class PrefsService @Inject constructor(private val sharedPreferences: SharedPref
     fun getRates(base: Currency): Single<HashMap<Currency, BigDecimal>> {
         return Single.create(SingleOnSubscribe { emitter ->
             val json = sharedPreferences.getString(base.name  + "Rate", "")
-            if ("".equals(json)) {
+            if (json.isNullOrEmpty()) {
                 emitter.onError(NullPointerException("no rates for ${base.name}"))
             } else {
                 val type = object : TypeToken<HashMap<Currency, BigDecimal>>() {}.type
@@ -54,7 +54,7 @@ class PrefsService @Inject constructor(private val sharedPreferences: SharedPref
     fun getInputBaseAmount(): Single<BigDecimal> {
         return Single.create(SingleOnSubscribe { emitter ->
             val str = sharedPreferences.getString(BASE_AMOUNT, "")
-            if ("".equals(str)) {
+            if (str.isNullOrEmpty()) {
                 emitter.onError(NullPointerException("no INPUT_BASE_AMOUNT saved"))
             } else {
                 emitter.onSuccess(BigDecimal(str))
@@ -89,7 +89,7 @@ class PrefsService @Inject constructor(private val sharedPreferences: SharedPref
     fun getBaseCurrency() : Single<Currency> {
         return Single.create(SingleOnSubscribe { emitter ->
             val str = sharedPreferences.getString(BASE_CURRENCY, "")
-            if ("".equals(str)) {
+            if (str.isNullOrEmpty()) {
                 emitter.onError(NullPointerException("no BASE_CURRENCY saved"))
             } else {
                 emitter.onSuccess(Currency.valueOf(str!!))
@@ -100,10 +100,10 @@ class PrefsService @Inject constructor(private val sharedPreferences: SharedPref
     fun getTargetCurrency() : Single<Currency> {
         return Single.create(SingleOnSubscribe { emitter ->
             val str = sharedPreferences.getString(TARGET_CURRENCY, "")
-            if ("".equals(str)) {
+            if (str.isNullOrEmpty()) {
                 emitter.onError(NullPointerException("no TARGET_CURRENCY saved"))
             } else {
-                emitter.onSuccess(Currency.valueOf(str!!))
+                emitter.onSuccess(Currency.valueOf(str))
             }
         })
     }

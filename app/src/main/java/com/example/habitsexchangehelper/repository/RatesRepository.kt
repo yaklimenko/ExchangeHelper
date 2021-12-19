@@ -55,12 +55,14 @@ class RatesRepository @Inject constructor(
         }
 
 
-    private fun transformRawRates(it: Rates): EnumMap<Currency, BigDecimal> {
+    private fun transformRawRates(rates: Rates): EnumMap<Currency, BigDecimal> {
         val res = EnumMap<Currency, BigDecimal>(Currency::class.java)
-        it.rates.forEach { rateEntry ->
-            if (enumValues<Currency>().any { it.name == rateEntry.key }) {
-                val cur = Currency.valueOf(rateEntry.key)
-                res[cur] = rateEntry.value
+        rates.data?.let {
+            it.forEach { rateEntry ->
+                if (enumValues<Currency>().any { it.name == rateEntry.key }) {
+                    val cur = Currency.valueOf(rateEntry.key)
+                    res[cur] = rateEntry.value
+                }
             }
         }
         return res
@@ -74,11 +76,11 @@ class RatesRepository @Inject constructor(
 
     fun getSavedBaseCurrency(): Single<Currency> =
         if (prefsService.hasBaseCurrency()) prefsService.getBaseCurrency()
-        else Single.just(Currency.RUB)
+        else Single.just(Currency.USD)
 
     fun getSavedTargetCurrency(): Single<Currency> =
         if (prefsService.hasTargetCurrency()) prefsService.getTargetCurrency()
-        else Single.just(Currency.USD)
+        else Single.just(Currency.EUR)
 
     fun saveCurrencies(base: Currency, target: Currency): Completable {
         return prefsService.saveBaseCurrency(base)

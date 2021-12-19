@@ -2,6 +2,7 @@ package com.example.habitsexchangehelper.net
 
 import com.example.habitsexchangehelper.entity.Rates
 import io.reactivex.rxjava3.core.Single
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.adapter.rxjava3.RxJava3CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
@@ -9,22 +10,28 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 import javax.inject.Singleton
 
-interface ExchangeApi {
+interface ExchangeApiRetrofit {
 
-    //GET https://api.exchangeratesapi.io/latest?base=USD
+    //curl 'https://freecurrencyapi.net/api/v2/latest?apikey=03b94ce0-60fa-11ec-9daa-9561c48637db'
     @GET("latest")
-    fun latest(@Query("base") base: String) : Single<Rates>
-
+    fun latest(@Query("base_currency") base: String) : Single<Rates>
 
     companion object Factory {
-        fun create(): ExchangeApi {
+        fun create(): ExchangeApiRetrofit {
+
+            val client = OkHttpClient.Builder()
+                .addInterceptor(ApiKeyInterceptor())
+                .addInterceptor(LoggingInterceptor())
+                .build()
+
             val retrofit = Retrofit.Builder()
                 .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
                 .addConverterFactory(GsonConverterFactory.create())
-                .baseUrl("https://api.exchangeratesapi.io/")
+                .client(client)
+                .baseUrl("https://freecurrencyapi.net/api/v2/")
                 .build()
 
-            return retrofit.create(ExchangeApi::class.java);
+            return retrofit.create(ExchangeApiRetrofit::class.java);
         }
     }
 }
@@ -32,10 +39,11 @@ interface ExchangeApi {
 @Singleton
 class RatesApiService {
 
-    val exchangeApi = ExchangeApi.create()
+    val exchangeApi = ExchangeApiRetrofit.create()
 
     fun getRates(base: String): Single<Rates> {
         return exchangeApi.latest(base)
     }
 
 }
+

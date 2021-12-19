@@ -13,13 +13,10 @@ import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import io.reactivex.rxjava3.subjects.PublishSubject
 import retrofit2.HttpException
-import java.lang.NumberFormatException
 import java.math.BigDecimal
 import java.net.UnknownHostException
 import java.util.concurrent.TimeUnit
-
 import javax.inject.Inject
-import kotlin.math.log
 
 class ExchangeViewModel : ViewModel() {
 

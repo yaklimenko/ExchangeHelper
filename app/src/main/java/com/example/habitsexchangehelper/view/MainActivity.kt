@@ -9,13 +9,11 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.habitsexchangehelper.ExchangeApp
 import com.example.habitsexchangehelper.R
 import com.example.habitsexchangehelper.databinding.ActivityMainBinding
-import com.example.habitsexchangehelper.di.ActivityComponent
 import com.example.habitsexchangehelper.di.AppModule
 import com.example.habitsexchangehelper.di.DaggerActivityComponent
 import com.example.habitsexchangehelper.di.NetworkModule
 import com.example.habitsexchangehelper.entity.Currency
 import com.example.habitsexchangehelper.repository.RatesRepository
-import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 import javax.inject.Inject
 
@@ -30,24 +28,24 @@ class MainActivity : AppCompatActivity() {
     private val currencies = enumValues<Currency>()
     private val baseButtons: EnumMap<Currency, Button> = EnumMap<Currency, Button>(Currency::class.java)
     private val targetButtons:EnumMap<Currency, Button> = EnumMap<Currency, Button>(Currency::class.java)
+    private lateinit var binding: ActivityMainBinding
 
-    private fun getActivityComponent(): ActivityComponent {
-        return DaggerActivityComponent
+    override fun onCreate(savedInstanceState: Bundle?) {
+
+        val activityComponent = DaggerActivityComponent
             .builder()
             .appComponent((application as ExchangeApp).appComponent)
             .networkModule(NetworkModule())
             .appModule(AppModule(application))
             .build()
-    }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        getActivityComponent().inject(this)
+        activityComponent.inject(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val vm: ExchangeViewModel by viewModels()
         viewModel = vm
-        viewModel.inject(getActivityComponent())
-        val binding = ActivityMainBinding.inflate(layoutInflater)
+        viewModel.inject(activityComponent)
+        binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         binding.viewmodel = viewModel
 
@@ -55,23 +53,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun generateCurrencyButtons() {
-        currencies.forEach { c ->
+        currencies.forEach { currency ->
             val btn = layoutInflater.inflate(R.layout.button_currency, null) as Button
-            btn.text = c.name.toUpperCase(Locale.ROOT)
+            btn.text = currency.name.uppercase(Locale.ROOT)
             btn.setOnClickListener {
-                viewModel.onBaseCurrencySet(c)
+                viewModel.onBaseCurrencySet(currency)
                 switchCurrencyBackToBtn(btn, baseButtons)
             }
-            baseButtons[c]= btn
-            buttonBarBase.addView(btn)
+            baseButtons[currency]= btn
+            binding.buttonBarBase.addView(btn)
             val btnTarget = layoutInflater.inflate(R.layout.button_currency, null) as Button
-            btnTarget.text = c.name.toUpperCase(Locale.ROOT)
+            btnTarget.text = currency.name.uppercase(Locale.ROOT)
             btnTarget.setOnClickListener {
-                viewModel.onTargetCurrencySet(c)
+                viewModel.onTargetCurrencySet(currency)
                 switchCurrencyBackToBtn(btnTarget, targetButtons)
             }
-            targetButtons[c] = btnTarget
-            buttonBarTarget.addView(btnTarget)
+            targetButtons[currency] = btnTarget
+            binding.buttonBarTarget.addView(btnTarget)
         }
     }
 
@@ -94,10 +92,10 @@ class MainActivity : AppCompatActivity() {
             targetButtons[it]!!.setBackgroundColor(SELECTED_BUTTON_BACKGROUND)
         })
         viewModel.targetAmountField.observe(this, {
-            amountEditText2.setText(it)
+            binding.amountEditText2.setText(it)
         })
         viewModel.baseAmountFieldUp.observe(this, {
-            amountEditText.setText(it)
+            binding.amountEditText.setText(it)
         })
         viewModel.errorMsg.observe( this, {
             Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
