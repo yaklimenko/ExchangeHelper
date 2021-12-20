@@ -1,7 +1,7 @@
 package com.example.habitsexchangehelper.entity
 
+import org.joda.time.DateTime
 import java.math.BigDecimal
-import java.util.*
 
 data class Rates (
     val query: Query,
@@ -10,5 +10,9 @@ data class Rates (
 
 data class Query (
     val base_currency: Currency,
-    val date: Date, //TODO json adapter
+    val timestamp: DateFromMilliseconds,
+)
+
+class DateFromMilliseconds (
+    val date: DateTime
 )

@@ -6,8 +6,6 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
-import io.reactivex.rxjava3.core.SingleOnSubscribe
-import io.reactivex.rxjava3.functions.Action
 import java.math.BigDecimal
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,15 +20,15 @@ class PrefsService @Inject constructor(
         sharedPreferences.contains(base.name + "Rate")
 
     fun getRates(base: Currency): Single<HashMap<Currency, BigDecimal>> {
-        return Single.create(SingleOnSubscribe { emitter ->
-            val json = sharedPreferences.getString(base.name  + "Rate", "")
+        return Single.create { emitter ->
+            val json = sharedPreferences.getString(base.name + "Rate", "")
             if (json.isNullOrEmpty()) {
                 emitter.onError(NullPointerException("no rates for ${base.name}"))
             } else {
                 val type = object : TypeToken<HashMap<Currency, BigDecimal>>() {}.type
                 emitter.onSuccess(Gson().fromJson(json, type))
             }
-        })
+        }
     }
 
     fun saveRates(base: Currency, rates: Map<Currency, BigDecimal>): Completable {
@@ -52,30 +50,30 @@ class PrefsService @Inject constructor(
     }
 
     fun getInputBaseAmount(): Single<BigDecimal> {
-        return Single.create(SingleOnSubscribe { emitter ->
+        return Single.create { emitter ->
             val str = sharedPreferences.getString(BASE_AMOUNT, "")
             if (str.isNullOrEmpty()) {
                 emitter.onError(NullPointerException("no INPUT_BASE_AMOUNT saved"))
             } else {
                 emitter.onSuccess(BigDecimal(str))
             }
-        })
+        }
     }
 
     private fun saveString(k: String, v: String): Completable {
-        return Completable.fromAction( Action {
+        return Completable.fromAction {
             sharedPreferences.edit()
                 .putString(k, v)
                 .apply()
-        })
+        }
     }
 
     fun saveBaseCurrency(base: Currency): Completable {
-        return Completable.fromAction( Action {
+        return Completable.fromAction {
             sharedPreferences.edit()
                 .putString(BASE_CURRENCY, base.name)
                 .apply()
-        })
+        }
     }
 
     fun hasBaseCurrency() : Boolean {
@@ -87,33 +85,33 @@ class PrefsService @Inject constructor(
     }
 
     fun getBaseCurrency() : Single<Currency> {
-        return Single.create(SingleOnSubscribe { emitter ->
+        return Single.create { emitter ->
             val str = sharedPreferences.getString(BASE_CURRENCY, "")
             if (str.isNullOrEmpty()) {
                 emitter.onError(NullPointerException("no BASE_CURRENCY saved"))
             } else {
-                emitter.onSuccess(Currency.valueOf(str!!))
+                emitter.onSuccess(Currency.valueOf(str))
             }
-        })
+        }
     }
 
     fun getTargetCurrency() : Single<Currency> {
-        return Single.create(SingleOnSubscribe { emitter ->
+        return Single.create { emitter ->
             val str = sharedPreferences.getString(TARGET_CURRENCY, "")
             if (str.isNullOrEmpty()) {
                 emitter.onError(NullPointerException("no TARGET_CURRENCY saved"))
             } else {
                 emitter.onSuccess(Currency.valueOf(str))
             }
-        })
+        }
     }
 
     fun saveTargetCurrency(target: Currency): Completable {
-        return Completable.fromAction( Action {
+        return Completable.fromAction {
             sharedPreferences.edit()
                 .putString(TARGET_CURRENCY, target.name)
                 .apply()
-        })
+        }
     }
 
     companion object {

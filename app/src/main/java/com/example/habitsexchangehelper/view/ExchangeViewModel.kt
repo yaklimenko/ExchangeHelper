@@ -66,18 +66,17 @@ class ExchangeViewModel : ViewModel() {
     }
 
     private fun handleAmount(it: String?) {
-        var amount: BigDecimal?
-        var tmp: String
-        if (it == null || it.isEmpty()) {
-            tmp = "0"
+        val amount: BigDecimal?
+        val tmp: String = if (it == null || it.isEmpty()) {
+            "0"
         } else {
-            tmp = it;
+            it;
         }
-        try {
-            amount = BigDecimal(tmp)
+        amount = try {
+            BigDecimal(tmp)
         } catch (e: NumberFormatException) {
             onError(e)
-            amount = null;
+            null
         }
         refreshAmount(amount)
     }
@@ -86,14 +85,14 @@ class ExchangeViewModel : ViewModel() {
         observableAmount.onNext(baseFieldInput)
     }
 
-    fun refreshAmount(base: BigDecimal?) {
+    private fun refreshAmount(base: BigDecimal?) {
         if (base != baseAmount) {
             baseAmount = base ?: BigDecimal.ZERO
             refreshAmount()
         }
     }
 
-    fun refreshAmount() {
+    private fun refreshAmount() {
         if (rate == null) {
             return
         }
@@ -108,24 +107,29 @@ class ExchangeViewModel : ViewModel() {
         component.inject(this)
 
     private fun refreshCurrencies() {
-        Log.d(TAG, "refreshCurrencies: ")
-        if (baseCurrencySelected.value == null || targetCurrencySelected.value == null) {
+        Log.d(TAG, "refreshCurrencies: START")
+
+        val baseVal = baseCurrencySelected.value
+        val targetVal = targetCurrencySelected.value
+        if (baseVal == null) {
             return
         }
-        if (baseCurrencySelected.value!!.equals(targetCurrencySelected.value)) {
+        if (targetVal == null) {
+            return
+        }
+        if (baseVal == targetVal) {
             rate = BigDecimal.ONE
             refreshAmount()
             return
         }
+
         disposables.add(
-            ratesRepository.getRate(baseCurrencySelected.value!!, targetCurrencySelected.value!!)
+            ratesRepository.getRate(baseVal, targetVal)
                 .onErrorResumeNext {
+                    Log.d(TAG, "refreshCurrencies: ERROR")
                     if (it is HttpException || it is UnknownHostException) {
                         Log.e(TAG, "refreshCurrencies: ", it)
-                        return@onErrorResumeNext ratesRepository.getSavedRate(
-                            baseCurrencySelected.value!!,
-                            targetCurrencySelected.value!!
-                        )
+                        return@onErrorResumeNext ratesRepository.getSavedRate(baseVal, targetVal)
                     } else {
                         Single.error(it)
                     }
@@ -135,7 +139,7 @@ class ExchangeViewModel : ViewModel() {
                     {
                         rate = it
                         refreshAmount()
-                        Log.d(TAG, "refreshCurrencies: ")
+                        Log.d(TAG, "refreshCurrencies: SUCCESS")
                     }, { e -> onError(e) }
                 )
         )
@@ -157,7 +161,7 @@ class ExchangeViewModel : ViewModel() {
         refreshCurrencies()
     }
 
-    fun recoverSavedBaseAmount() {
+    private fun recoverSavedBaseAmount() {
         disposables.add(
             ratesRepository.getBaseAmount()
                 .subscribeOn(Schedulers.io())
@@ -169,7 +173,7 @@ class ExchangeViewModel : ViewModel() {
         )
     }
 
-    fun recoverCurrencies() {
+    private fun recoverCurrencies() {
         disposables.add(
             ratesRepository.getSavedBaseCurrency()
                 .subscribeOn(Schedulers.io())
@@ -188,7 +192,7 @@ class ExchangeViewModel : ViewModel() {
         )
     }
 
-    fun onError(t: Throwable) {
+    private fun onError(t: Throwable) {
         Log.e(TAG, "onError: ", t)
         if (t is HttpException) {
             errorMsg.value = "" + t.code() + t.response().toString() + t.message()
@@ -198,7 +202,7 @@ class ExchangeViewModel : ViewModel() {
     }
 
     fun saveState() {
-        Log.d(TAG, "saveState: amount:" + baseAmount.toString())
+        Log.d(TAG, "saveState: amount:$baseAmount")
         ratesRepository.saveBaseAmount(baseAmount)
             .andThen(
                 ratesRepository.saveCurrencies(

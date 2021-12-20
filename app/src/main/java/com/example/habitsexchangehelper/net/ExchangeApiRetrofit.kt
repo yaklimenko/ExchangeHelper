@@ -1,6 +1,9 @@
 package com.example.habitsexchangehelper.net
 
+import com.example.habitsexchangehelper.entity.DateFromMilliseconds
 import com.example.habitsexchangehelper.entity.Rates
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import io.reactivex.rxjava3.core.Single
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -17,7 +20,12 @@ interface ExchangeApiRetrofit {
     fun latest(@Query("base_currency") base: String) : Single<Rates>
 
     companion object Factory {
+
         fun create(): ExchangeApiRetrofit {
+
+            val gson: Gson = GsonBuilder()
+                .registerTypeAdapter(DateFromMilliseconds::class.java, DateFromMillisecondsAdapter())
+                .create()
 
             val client = OkHttpClient.Builder()
                 .addInterceptor(ApiKeyInterceptor())
@@ -26,7 +34,7 @@ interface ExchangeApiRetrofit {
 
             val retrofit = Retrofit.Builder()
                 .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
-                .addConverterFactory(GsonConverterFactory.create())
+                .addConverterFactory(GsonConverterFactory.create(gson))
                 .client(client)
                 .baseUrl("https://freecurrencyapi.net/api/v2/")
                 .build()
@@ -39,7 +47,7 @@ interface ExchangeApiRetrofit {
 @Singleton
 class RatesApiService {
 
-    val exchangeApi = ExchangeApiRetrofit.create()
+    private val exchangeApi = ExchangeApiRetrofit.create()
 
     fun getRates(base: String): Single<Rates> {
         return exchangeApi.latest(base)
